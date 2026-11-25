@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Familien</title>
+  <meta name="theme-color" content="#f6f5fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17161d" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Familien">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Innlogging -->
+  <section id="view-login" class="view center" hidden>
+    <div class="logo-big" aria-hidden="true">👨‍👩‍👧‍👦</div>
+    <h1>Familien</h1>
+    <p class="muted">Beskjeder og felles kalender for hele familien.</p>
+    <form id="login-form" class="card stack">
+      <label>E-post<input type="email" id="login-email" autocomplete="username" required></label>
+      <label>Passord<input type="password" id="login-password" autocomplete="current-password" required minlength="6"></label>
+      <button type="submit" class="btn primary" id="login-submit">Logg inn</button>
+      <button type="button" class="btn ghost" id="login-toggle">Ny bruker? Lag konto</button>
+      <p class="hint">Har du konto i huskelista eller matdagboken, kan du bruke den samme.</p>
+      <p class="error" id="login-error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Første gang: lag eller bli med i en familie -->
+  <section id="view-setup" class="view center" hidden>
+    <div class="logo-big" aria-hidden="true">🏡</div>
+    <h1>Bli med i familien</h1>
+    <form id="setup-form" class="card stack">
+      <label>Ditt navn<input id="setup-name" autocomplete="given-name" placeholder="F.eks. Magnus" required maxlength="40"></label>
+      <label>Mobilnummer<input id="setup-phone" type="tel" autocomplete="tel" placeholder="F.eks. 912 34 567" inputmode="tel"></label>
+      <p class="hint">Nummeret brukes når noen sender SMS eller Vipps til deg. Det vises bare for familien.</p>
+      <div class="seg" role="tablist">
+        <button type="button" class="seg-btn active" data-mode="join">Jeg har en kode</button>
+        <button type="button" class="seg-btn" data-mode="new">Lag ny familie</button>
+      </div>
+      <label id="setup-code-wrap">Kode fra familien<input id="setup-code" autocapitalize="characters" autocomplete="off" placeholder="ABC123" maxlength="6" required></label>
+      <label id="setup-hh-wrap" hidden>Navn på familien<input id="setup-hh" placeholder="Familien Hvam" maxlength="60"></label>
+      <button type="submit" class="btn primary" id="setup-submit">Bli med</button>
+      <p class="error" id="setup-error" hidden></p>
+    </form>
+    <button class="btn ghost small" id="setup-logout">Logg ut</button>
+  </section>
+
+  <!-- Hovedvisning -->
+  <section id="view-main" class="view" hidden>
+    <header class="topbar">
+      <h2 id="title">Beskjeder</h2>
+      <span class="sync" id="sync" title="Synkronisert">●</span>
+    </header>
+
+    <!-- Beskjeder -->
+    <div id="pane-msg">
+      <form id="msg-form" class="card stack compose">
+        <textarea id="msg-body" rows="2" maxlength="2000" placeholder="Skriv en beskjed…" required></textarea>
+        <div class="to-row"><span class="muted small">Til:</span><div id="msg-to" class="chips"></div></div>
+        <div class="send-row">
+          <label class="check-row small"><input type="checkbox" id="msg-sms"> Send også som SMS</label>
+          <button class="btn primary" id="msg-send" type="submit">Send</button>
+        </div>
+        <p class="hint" id="msg-sms-hint" hidden></p>
+      </form>
+      <ul id="msgs" class="msgs"></ul>
+      <p id="msgs-empty" class="empty" hidden>Ingen beskjeder ennå. Skriv den første!</p>
+    </div>
+
+    <!-- Kalender -->
+    <div id="pane-cal" hidden>
+      <button class="btn primary wide" id="new-event">+ Ny avtale</button>
+      <div id="cal"></div>
+    </div>
+
+    <!-- Familien -->
+    <div id="pane-fam" hidden>
+      <div class="card stack">
+        <div class="row"><span class="muted">Familie</span><b id="fam-name"></b></div>
+        <div class="row"><span class="muted">Kode for å bli med</span><b class="code" id="fam-code"></b></div>
+        <button class="btn primary" id="share-code">Inviter noen</button>
+        <p class="hint">Send koden til den du vil invitere. De åpner appen, lager konto, skriver navn, mobilnummer og koden.</p>
+      </div>
+      <h4 class="section">Medlemmer</h4>
+      <ul id="members" class="members card"></ul>
+      <h4 class="section">Meg</h4>
+      <form id="me-form" class="card stack">
+        <label>Navn<input id="me-name" required maxlength="40"></label>
+        <label>Mobilnummer<input id="me-phone" type="tel" inputmode="tel"></label>
+        <button class="btn" type="submit">Lagre</button>
+        <div class="row"><span class="muted">Innlogget</span><span id="me-email"></span></div>
+        <button class="btn ghost danger" type="button" id="logout">Logg ut</button>
+      </form>
+    </div>
+  </section>
+
+  <nav class="tabbar" id="tabbar" hidden>
+    <button class="tab active" data-tab="msg"><span>💬</span>Beskjeder<b class="badge" id="badge-msg"></b></button>
+    <button class="tab" data-tab="cal"><span>📅</span>Kalender</button>
+    <button class="tab" data-tab="fam"><span>👨‍👩‍👧</span>Familien</button>
+  </nav>
+
+  <!-- Ny / endre avtale -->
+  <dialog id="event-dlg" class="sheet">
+    <form method="dialog" class="sheet-head"><h3 id="ev-head">Ny avtale</h3><button class="icon-btn" aria-label="Lukk">✕</button></form>
+    <form id="event-form" class="card stack">
+      <label>Hva<input id="ev-title" required maxlength="200" placeholder="F.eks. Fotballtrening"></label>
+      <label>Dato<input id="ev-date" type="date" required></label>
+      <label class="check-row"><input id="ev-allday" type="checkbox"> Hele dagen</label>
+      <div class="two" id="ev-times">
+        <label>Fra<input id="ev-from" type="time" value="17:00"></label>
+        <label>Til<input id="ev-to" type="time" value="18:00"></label>
+      </div>
+      <label class="check-row"><input id="ev-weekly" type="checkbox"> Gjentas hver uke</label>
+      <label id="ev-until-wrap" hidden>Siste gang (valgfritt)<input id="ev-until" type="date"></label>
+      <label>Sted (valgfritt)<input id="ev-loc" maxlength="200" placeholder="F.eks. Kunstgresset"></label>
+      <div><span class="muted small">Gjelder</span><div id="ev-who" class="chips"></div></div>
+      <button class="btn primary" type="submit">Lagre</button>
+      <button class="btn ghost" type="button" id="ev-tell">Send beskjed om avtalen</button>
+      <button class="btn ghost danger" type="button" id="ev-delete" hidden>Slett avtale</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
