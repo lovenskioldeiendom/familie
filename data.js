@@ -72,6 +72,26 @@ async function createSupabaseStore() {
     async setDrivers(id, drivers) { check(await sb.from('fa_events').update({ drivers }).eq('id', id)); },
     async deleteEvent(id) { check(await sb.from('fa_events').delete().eq('id', id)); },
 
+    // ---------- Varsler ----------
+    async pushCall(body) {
+      const { data, error } = await sb.functions.invoke('familie-varsel', { body });
+      if (error) {
+        let msg = '';
+        try { msg = (await error.context.json()).error || ''; } catch {}
+        if (!msg && (error.context?.status === 404 || /Failed to send a request/i.test(error.message))) msg = 'Varsler er ikke satt opp ennå (funksjonen familie-varsel mangler i Supabase).';
+        throw new Error(norskFeil(msg || error.message));
+      }
+      return data;
+    },
+    async pushKey() { return (await this.pushCall({ action: 'key' })).publicKey; },
+    async savePush(sub) {
+      const j = sub.toJSON();
+      check(await sb.rpc('fa_save_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }));
+    },
+    async deletePush(endpoint) { check(await sb.rpc('fa_delete_push', { p_endpoint: endpoint })); },
+    async notify(messageId) { return this.pushCall({ action: 'send', message_id: messageId }); },
+    async testPush() { return this.pushCall({ action: 'test' }); },
+
     // Sanntid: kaller cb(tabell) når noe endres
     subscribe(gid, cb, onStatus) {
       if (channel) sb.removeChannel(channel);
@@ -156,5 +176,7 @@ function createLocalStore() {
     async setDrivers(id, drivers) { const e = db.events.find((x) => x.id === id); if (e) e.drivers = drivers; save(); fire('fa_events'); },
     async deleteEvent(id) { db.events = db.events.filter((e) => e.id !== id); save(); fire('fa_events'); },
     subscribe(_g, c, onStatus) { cb = c; onStatus?.('SUBSCRIBED'); },
+    async pushKey() { throw new Error('Varsler virker ikke i demomodus.'); },
+    async savePush() {}, async deletePush() {}, async notify() {}, async testPush() {},
   };
 }

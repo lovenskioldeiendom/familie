@@ -12,7 +12,7 @@ const WEEKS = 8; // hvor langt fram kalenderen viser
 
 const S = {
   store: null, user: null, group: null, members: [], messages: [], events: [],
-  tab: ls.get('fa-tab', 'msg'), signUpMode: false, setupMode: 'join',
+  tab: new URLSearchParams(location.search).get('tab') || ls.get('fa-tab', 'msg'), signUpMode: false, setupMode: 'join',
   to: 'all', // 'all' eller Set med user_id
   editing: null,
 };
@@ -61,7 +61,12 @@ async function openVipps(m) {
 
 // ---------- Oppstart ----------
 async function boot() {
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // Trykk på et varsel mens appen allerede er åpen
+    navigator.serviceWorker.addEventListener('message', (e) => { if (e.data?.type === 'open-msg' && S.group) { setTab('msg'); reloadSoon(); } });
+  }
+  if (/[?&]tab=/.test(location.search)) history.replaceState(null, '', location.pathname + location.search.replace(/[?&]tab=\w+/, '').replace(/^&/, '?'));
   S.store = await createStore();
   S.store.onAuth((u) => { if (!u && S.user) { S.user = null; S.group = null; show('login'); } });
   S.store.onRecovery(() => show('reset'));
@@ -85,6 +90,7 @@ async function afterLogin() {
     if (st === 'SUBSCRIBED') reloadSoon();
   });
   await reload();
+  refreshPush();
 }
 
 // ---------- Innlogging ----------
@@ -168,6 +174,9 @@ $('setup-form').onsubmit = async (e) => {
 };
 $('setup-logout').onclick = () => logout();
 async function logout() {
+  // Ikke send flere varsler til denne telefonen for denne brukeren
+  try { const sub = await pushSub(); if (sub) await S.store.deletePush(sub.endpoint); } catch {}
+  S.pushSaved = false;
   await S.store.signOut().catch(() => {});
   S.user = null; S.group = null; S.messages = []; S.events = []; S.members = [];
   show('login');
@@ -199,7 +208,7 @@ async function reload() {
     render();
   } catch (e) { fail(e); }
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && S.group) reloadSoon(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.group) { reloadSoon(); clearNotifications(); } });
 setInterval(() => { if (!document.hidden && S.group) reload(); }, 60e3);
 
 const member = (uid) => S.members.find((m) => m.user_id === uid);
@@ -271,13 +280,17 @@ $('msg-form').onsubmit = async (e) => {
   const wantSms = $('msg-sms').checked;
   $('msg-send').disabled = true;
   try {
-    await S.store.sendMessage(S.group.id, body, toAll, toAll ? [] : rec.map((m) => m.user_id));
+    const sent = await S.store.sendMessage(S.group.id, body, toAll, toAll ? [] : rec.map((m) => m.user_id));
+    const notified = sent?.id ? S.store.notify(sent.id).catch((x) => console.log('varsel', x)) : null;
     $('msg-body').value = ''; autoGrow();
     S.to = 'all';
     await reload();
     if (wantSms) {
       const nums = rec.map((m) => normPhone(m.phone)).filter(Boolean);
-      if (nums.length) location.href = smsUrl(nums, body);
+      if (nums.length) {
+        await Promise.race([notified, new Promise((r) => setTimeout(r, 2500))]); // la varslene gå før meldingsappen åpnes
+        location.href = smsUrl(nums, body);
+      }
       else toast('Ingen av mottakerne har mobilnummer, så det ble bare sendt i appen.');
     } else toast('Sendt');
   } catch (x) { fail(x); }
@@ -328,6 +341,109 @@ $('msgs').onclick = async (e) => {
     S.store.ack(m.id, on).catch((x) => { fail(x); reload(); });
   }
 };
+
+// ---------- Varsler (push) ----------
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function pushSupport() {
+  if (S.store?.demo) return 'demo';
+  if (isIOS && !isStandalone()) return 'ios-browser';
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || location.protocol !== 'https:') return 'unsupported';
+  return 'ok';
+}
+async function swReg() {
+  return Promise.race([navigator.serviceWorker.ready, new Promise((_, rej) => setTimeout(() => rej(new Error('Appen er ikke klar ennå. Lukk den helt og åpne den igjen.')), 8000))]);
+}
+async function pushSub() {
+  if (pushSupport() !== 'ok') return null;
+  return (await swReg()).pushManager.getSubscription();
+}
+function b64ToBytes(s) {
+  const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+  return Uint8Array.from(b, (c) => c.charCodeAt(0));
+}
+async function subscribePush() {
+  const reg = await swReg();
+  const key = b64ToBytes(await S.store.pushKey());
+  let sub = await reg.pushManager.getSubscription();
+  const same = sub?.options?.applicationServerKey && new Uint8Array(sub.options.applicationServerKey).every((x, i) => x === key[i]);
+  if (sub && !same) { await sub.unsubscribe().catch(() => {}); sub = null; }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  await S.store.savePush(sub);
+  S.pushSaved = true;
+  return sub;
+}
+// Ved oppstart: sørg for at denne telefonen er koblet til den som er logget inn.
+async function refreshPush() {
+  S.pushOn = false;
+  try {
+    if (pushSupport() === 'ok' && Notification.permission === 'granted') {
+      const sub = await pushSub();
+      if (sub && !S.pushSaved) { await S.store.savePush(sub); S.pushSaved = true; }
+      else if (!sub) await subscribePush();
+      S.pushOn = true;
+    }
+  } catch (e) { console.log('varsler', e); }
+  renderPush();
+  clearNotifications();
+}
+function renderPush() {
+  const sup = pushSupport();
+  const perm = sup === 'ok' ? Notification.permission : '';
+  const st = $('push-status'), tog = $('push-toggle'), test = $('push-test');
+  tog.hidden = test.hidden = true;
+  if (sup === 'demo') st.textContent = 'Varsler virker ikke i demomodus.';
+  else if (sup === 'ios-browser') st.textContent = 'For å få varsler på iPhone må appen åpnes fra hjemskjermen. Trykk Del-knappen i Safari og velg «Legg til på Hjem-skjerm», og åpne den derfra.';
+  else if (sup === 'unsupported') st.textContent = 'Denne telefonen eller nettleseren støtter ikke varsler. På iPhone trengs iOS 16.4 eller nyere.';
+  else if (perm === 'denied') st.textContent = 'Varsler er slått av for appen. Gå til Innstillinger → Varslinger → Familien på telefonen og slå på «Tillat varslinger». Åpne så appen igjen.';
+  else if (S.pushOn) {
+    st.textContent = '🔔 Varsler er på. Du får varsel når noen sender en beskjed til deg eller til alle.';
+    tog.hidden = false; tog.textContent = 'Slå av varsler'; tog.className = 'btn ghost danger';
+    test.hidden = false;
+  } else {
+    st.textContent = 'Få varsel på telefonen når det kommer nye beskjeder, også når appen er lukket.';
+    tog.hidden = false; tog.textContent = 'Slå på varsler'; tog.className = 'btn primary';
+  }
+  $('push-banner').hidden = !(sup === 'ok' && perm !== 'denied' && !S.pushOn && !ls.get('fa-push-x', false));
+}
+async function enablePush(btn) {
+  if (pushSupport() !== 'ok') { renderPush(); setTab('fam'); return; }
+  btn.disabled = true;
+  try {
+    // Spør om lov med en gang (iPhone krever at det skjer rett etter trykket)
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { renderPush(); toast(perm === 'denied' ? 'Du sa nei til varsler. Det kan endres i Innstillinger på telefonen.' : 'Varsler ble ikke slått på.', 6000); return; }
+    await subscribePush();
+    S.pushOn = true; renderPush();
+    toast('Varsler er på 🔔');
+    S.store.testPush().catch(() => {});
+  } catch (e) { fail(e); }
+  finally { btn.disabled = false; }
+}
+async function disablePush() {
+  try {
+    const sub = await pushSub();
+    if (sub) { await S.store.deletePush(sub.endpoint).catch(() => {}); await sub.unsubscribe(); }
+    S.pushOn = false; S.pushSaved = false; renderPush();
+    toast('Varsler er slått av');
+  } catch (e) { fail(e); }
+}
+$('push-toggle').onclick = (e) => (S.pushOn ? disablePush() : enablePush(e.currentTarget));
+$('push-banner-on').onclick = (e) => enablePush(e.currentTarget);
+$('push-banner-x').onclick = () => { ls.set('fa-push-x', true); renderPush(); toast('Du kan slå på varsler senere under Familien.'); };
+$('push-test').onclick = async (e) => {
+  const b = e.currentTarget; b.disabled = true;
+  try {
+    const r = await S.store.testPush();
+    toast(r?.sent ? 'Prøvevarsel sendt. Det kommer om noen sekunder.' : 'Fant ingen telefon å sende til. Slå varsler av og på igjen.', 5000);
+  } catch (x) { fail(x); }
+  finally { b.disabled = false; }
+};
+async function clearNotifications() {
+  try {
+    if (S.tab !== 'msg' || pushSupport() !== 'ok') return;
+    for (const n of await (await swReg()).getNotifications()) n.close();
+  } catch {}
+}
 
 // ---------- Kalender ----------
 const dayKey = (d) => d.toLocaleDateString('sv-SE');

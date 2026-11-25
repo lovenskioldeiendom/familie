@@ -145,6 +145,53 @@ grant execute on function public.fa_join_group(text, text, text) to authenticate
 revoke execute on function public.fa_create_group(text, text, text) from anon, public;
 revoke execute on function public.fa_join_group(text, text, text) from anon, public;
 
+-- ---------- Varsler (push) om nye beskjeder ----------
+-- Hver telefon som har slått på varsler, får én rad her.
+create table if not exists public.fa_push_subs (
+  endpoint text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists fa_push_subs_user on public.fa_push_subs (user_id);
+alter table public.fa_push_subs enable row level security;
+drop policy if exists "fa_push_subs_own" on public.fa_push_subs;
+create policy "fa_push_subs_own" on public.fa_push_subs for select to authenticated using (user_id = auth.uid());
+
+-- Nøklene som varslene signeres med. Lages automatisk av funksjonen familie-varsel. Bare serveren kan lese dem.
+create table if not exists public.fa_push_keys (
+  id int primary key default 1 check (id = 1),
+  public_key text not null,
+  private_jwk jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.fa_push_keys enable row level security;
+
+-- Lagre denne telefonens varsel-abonnement på meg (tar over hvis noen andre var logget inn på telefonen før).
+create or replace function public.fa_save_push(p_endpoint text, p_p256dh text, p_auth text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'Ikke logget inn'; end if;
+  insert into fa_push_subs (endpoint, user_id, p256dh, auth) values (p_endpoint, auth.uid(), p_p256dh, p_auth)
+    on conflict (endpoint) do update set user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, created_at = now();
+end $$;
+create or replace function public.fa_delete_push(p_endpoint text)
+returns void language sql security definer set search_path = public as $$
+  delete from fa_push_subs where endpoint = p_endpoint and user_id = auth.uid();
+$$;
+
+grant select on public.fa_push_subs to authenticated;
+revoke all on public.fa_push_keys from anon, authenticated;
+grant execute on function public.fa_save_push(text, text, text) to authenticated;
+grant execute on function public.fa_delete_push(text) to authenticated;
+revoke execute on function public.fa_save_push(text, text, text) from anon, public;
+revoke execute on function public.fa_delete_push(text) from anon, public;
+-- Funksjonen familie-varsel (service_role) må kunne lese beskjeder, medlemmer og abonnementer.
+grant usage on schema public to service_role;
+grant select on public.fa_messages, public.fa_members to service_role;
+grant select, insert, update, delete on public.fa_push_subs, public.fa_push_keys to service_role;
+
 -- Sanntid: nye beskjeder og avtaler dukker opp hos de andre med en gang
 do $$ begin alter publication supabase_realtime add table public.fa_messages; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.fa_acks; exception when duplicate_object then null; end $$;
