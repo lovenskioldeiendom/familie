@@ -73,6 +73,12 @@
 
     <!-- Beskjeder -->
     <div id="pane-msg">
+      <div id="push-banner" class="card push-banner" hidden>
+        <span class="push-bell" aria-hidden="true">🔔</span>
+        <span class="push-text">Få varsel på telefonen når det kommer nye beskjeder.</span>
+        <button class="btn primary small" id="push-banner-on" type="button">Slå på</button>
+        <button class="icon-btn" id="push-banner-x" type="button" aria-label="Ikke nå">✕</button>
+      </div>
       <form id="msg-form" class="card stack compose">
         <textarea id="msg-body" rows="2" maxlength="2000" placeholder="Skriv en beskjed…" required></textarea>
         <div class="to-row"><span class="muted small">Til:</span><div id="msg-to" class="chips"></div></div>
@@ -99,6 +105,12 @@
         <div class="row"><span class="muted">Kode for å bli med</span><b class="code" id="fam-code"></b></div>
         <button class="btn primary" id="share-code">Inviter noen</button>
         <p class="hint">Send koden til den du vil invitere. De åpner appen, lager konto, skriver navn, mobilnummer og koden.</p>
+      </div>
+      <h4 class="section">Varsler</h4>
+      <div class="card stack" id="push-card">
+        <p class="push-status" id="push-status">Sjekker varsler…</p>
+        <button class="btn primary" type="button" id="push-toggle" hidden>Slå på varsler</button>
+        <button class="btn ghost" type="button" id="push-test" hidden>Send et prøvevarsel</button>
       </div>
       <h4 class="section">Medlemmer</h4>
       <ul id="members" class="members card"></ul>
