@@ -7,7 +7,7 @@ Laget som en nettside som kan legges på hjemskjermen (PWA). Ingen byggesteg.
 - **Beskjeder** til alle eller til valgte personer. Andre kan svare 👍.
 - **Send også som SMS:** åpner meldingsappen på telefonen med mottakere og tekst ferdig utfylt (gratis, sendes fra eget nummer).
 - **Kalender** med enkeltavtaler og avtaler som gjentas hver uke (f.eks. fotballtrening). «Hvem kjører?» per gang.
-- **Familien:** medlemmer med navn og mobilnummer. Knapper for å ringe, sende SMS eller åpne Hvor er?-appen (📍, bare på iPhone/iPad).
+- **Familien:** medlemmer med navn og mobilnummer. Knapper for å ringe, sende SMS eller Vipps (nummeret kopieres og vises stort, med knapp som åpner Vipps; Vipps lar ikke andre apper fylle inn mottaker) og «Hvor er?» som åpner Hvor er?-appen (bare iPhone/iPad).
 - Medlemmer legger seg til selv med en 6-tegns kode.
 - **Varsler** på telefonen når det kommer en ny beskjed til deg eller til alle (ikke til den som sendte).
 
