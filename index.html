@@ -26,8 +26,21 @@
       <label>Passord<input type="password" id="login-password" autocomplete="current-password" required minlength="6"></label>
       <button type="submit" class="btn primary" id="login-submit">Logg inn</button>
       <button type="button" class="btn ghost" id="login-toggle">Ny bruker? Lag konto</button>
+      <button type="button" class="link center-link" id="login-forgot">Glemt passord?</button>
       <p class="hint">Har du konto i huskelista eller matdagboken, kan du bruke den samme.</p>
       <p class="error" id="login-error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Nytt passord (etter lenke fra e-post) -->
+  <section id="view-reset" class="view center" hidden>
+    <div class="logo-big" aria-hidden="true">🔑</div>
+    <h1>Lag nytt passord</h1>
+    <form id="reset-form" class="card stack">
+      <label>Nytt passord<input type="password" id="reset-password" autocomplete="new-password" required minlength="6"></label>
+      <button type="submit" class="btn primary" id="reset-submit">Lagre nytt passord</button>
+      <p class="hint">Minst 6 tegn. Du forblir innlogget etterpå.</p>
+      <p class="error" id="reset-error" hidden></p>
     </form>
   </section>
 

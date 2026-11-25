@@ -18,7 +18,7 @@ const S = {
 };
 
 function show(view) {
-  for (const v of ['login', 'setup', 'main']) $('view-' + v).hidden = v !== view;
+  for (const v of ['login', 'reset', 'setup', 'main']) $('view-' + v).hidden = v !== view;
   $('tabbar').hidden = view !== 'main';
 }
 let toastT;
@@ -64,7 +64,9 @@ async function boot() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   S.store = await createStore();
   S.store.onAuth((u) => { if (!u && S.user) { S.user = null; S.group = null; show('login'); } });
+  S.store.onRecovery(() => show('reset'));
   S.user = await S.store.user();
+  if (S.store.isRecovering()) return show('reset');
   if (!S.user) return show('login');
   await afterLogin();
 }
@@ -94,7 +96,7 @@ $('login-toggle').onclick = () => {
 };
 $('login-form').onsubmit = async (e) => {
   e.preventDefault();
-  const err = $('login-error'); err.hidden = true;
+  const err = $('login-error'); err.hidden = true; err.className = 'error';
   const email = $('login-email').value.trim(), pw = $('login-password').value;
   $('login-submit').disabled = true;
   try {
@@ -109,6 +111,36 @@ $('login-form').onsubmit = async (e) => {
     await afterLogin();
   } catch (x) { err.textContent = x.message; err.hidden = false; }
   finally { $('login-submit').disabled = false; }
+};
+
+// ---------- Glemt passord ----------
+$('login-forgot').onclick = async () => {
+  const err = $('login-error'); err.hidden = true; err.className = 'error';
+  const email = $('login-email').value.trim();
+  if (!email || !$('login-email').checkValidity()) {
+    err.textContent = 'Skriv inn e-posten din øverst, og trykk «Glemt passord?» igjen.';
+    err.hidden = false; $('login-email').focus(); return;
+  }
+  $('login-forgot').disabled = true;
+  try {
+    await S.store.resetPassword(email);
+    err.className = 'hint';
+    err.textContent = `Vi har sendt en e-post til ${email}. Trykk på lenken i e-posten for å lage nytt passord. Sjekk søppelpost hvis den ikke kommer.`;
+  } catch (x) { err.textContent = x.message; }
+  err.hidden = false;
+  $('login-forgot').disabled = false;
+};
+$('reset-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const err = $('reset-error'); err.hidden = true;
+  $('reset-submit').disabled = true;
+  try {
+    await S.store.setNewPassword($('reset-password').value);
+    toast('Nytt passord er lagret');
+    S.user = await S.store.user();
+    if (S.user) await afterLogin(); else show('login');
+  } catch (x) { err.textContent = x.message; err.hidden = false; }
+  finally { $('reset-submit').disabled = false; }
 };
 
 // ---------- Oppsett ----------

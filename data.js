@@ -7,15 +7,30 @@ export async function createStore() {
 }
 
 async function createSupabaseStore() {
+  // Kom brukeren hit fra «Glemt passord»-lenken i e-posten? (sjekkes før Supabase rydder adressen)
+  let recovering = /type=recovery/.test(location.hash);
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
   const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, storageKey: 'familie-auth' },
   });
   const check = ({ data, error }) => { if (error) throw new Error(norskFeil(error.message)); return data; };
   let channel = null;
+  // Kom brukeren hit fra «Glemt passord»-lenken i e-posten?
+  const recoveryCbs = [];
+  sb.auth.onAuthStateChange((e) => { if (e === 'PASSWORD_RECOVERY') { recovering = true; recoveryCbs.forEach((f) => f()); } });
 
   return {
     demo: false,
+    isRecovering() { return recovering; },
+    onRecovery(cb) { recoveryCbs.push(cb); },
+    async resetPassword(email) {
+      check(await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }));
+    },
+    async setNewPassword(password) {
+      check(await sb.auth.updateUser({ password }));
+      recovering = false;
+      history.replaceState(null, '', location.pathname + location.search);
+    },
     async user() { const { data } = await sb.auth.getSession(); return data.session?.user ?? null; },
     onAuth(cb) { sb.auth.onAuthStateChange((_e, s) => cb(s?.user ?? null)); },
     async signIn(email, password) { check(await sb.auth.signInWithPassword({ email, password })); },
@@ -73,6 +88,8 @@ function norskFeil(msg) {
   if (/Invalid login credentials/i.test(msg)) return 'Feil e-post eller passord.';
   if (/Email not confirmed/i.test(msg)) return 'E-posten er ikke bekreftet ennå. Sjekk innboksen.';
   if (/already registered/i.test(msg)) return 'Det finnes allerede en konto med denne e-posten. Trykk «Har konto? Logg inn».';
+  if (/should be different from the old/i.test(msg)) return 'Det nye passordet må være forskjellig fra det gamle.';
+  if (/Auth session missing|expired|invalid.*(token|link)/i.test(msg)) return 'Lenken er for gammel eller allerede brukt. Trykk «Glemt passord?» og be om en ny.';
   if (/Password should be/i.test(msg)) return 'Passordet må ha minst 6 tegn.';
   if (/rate limit/i.test(msg)) return 'For mange forsøk. Vent litt og prøv igjen.';
   if (/Ukjent kode/i.test(msg)) return 'Fant ingen familie med den koden. Sjekk at den er skrevet riktig.';
@@ -111,6 +128,7 @@ function createLocalStore() {
   };
   return {
     demo: true,
+    isRecovering() { return false; }, onRecovery() {}, async resetPassword() {}, async setNewPassword() {},
     async user() { return me; }, onAuth() {}, async signIn() {}, async signUp() { return {}; }, async signOut() {},
     async group() { return db.group; },
     async members() { return db.members.slice(); },
