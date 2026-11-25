@@ -91,7 +91,8 @@ function norskFeil(msg) {
   if (/should be different from the old/i.test(msg)) return 'Det nye passordet må være forskjellig fra det gamle.';
   if (/Auth session missing|expired|invalid.*(token|link)/i.test(msg)) return 'Lenken er for gammel eller allerede brukt. Trykk «Glemt passord?» og be om en ny.';
   if (/Password should be/i.test(msg)) return 'Passordet må ha minst 6 tegn.';
-  if (/rate limit/i.test(msg)) return 'For mange forsøk. Vent litt og prøv igjen.';
+  if (/email rate limit/i.test(msg)) return 'Appen har sendt for mange e-poster den siste timen (gjelder alle i familien til sammen). Prøv igjen om en time, eller be den som satte opp appen slå av e-postbekreftelse i Supabase.';
+  if (/rate limit/i.test(msg)) return 'For mange forsøk på kort tid. Vent et minutt og prøv igjen.';
   if (/Ukjent kode/i.test(msg)) return 'Fant ingen familie med den koden. Sjekk at den er skrevet riktig.';
   if (/permission denied/i.test(msg)) return 'Databasen mangler tilgang. Kjør supabase.sql i Supabase (SQL Editor).';
   if (/row-level security/i.test(msg)) return 'Databasen avviste endringen. Logg ut og inn igjen.';
