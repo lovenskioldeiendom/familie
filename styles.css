@@ -163,3 +163,9 @@ textarea { resize: none; line-height: 1.4; min-height: 52px; }
 .push-banner .btn { flex: none; }
 .push-banner .icon-btn { flex: none; width: 34px; height: 34px; font-size: 18px; }
 .push-status { margin: 0; font-size: 15px; line-height: 1.4; }
+
+/* Vipps-ark */
+.vp-num { font-size: 32px; font-weight: 700; text-align: center; letter-spacing: 1px; user-select: all; -webkit-user-select: all; }
+#vp-status { text-align: center; margin: 0; }
+.vp-steps { margin: 4px 0; padding-left: 22px; line-height: 1.6; }
+.vp-open { display: block; text-align: center; text-decoration: none; background: #ff5b24; }
