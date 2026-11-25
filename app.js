@@ -28,7 +28,7 @@ function toast(msg, ms = 3500) {
 }
 const fail = (e) => toast(e?.message || String(e), 6000);
 
-// ---------- Telefon, SMS og Vipps ----------
+// ---------- Telefon, SMS, Vipps og Hvor er? ----------
 function normPhone(p) {
   let s = String(p || '').replace(/[^\d+]/g, '');
   if (s.startsWith('00')) s = '+' + s.slice(2);
@@ -52,11 +52,19 @@ function smsUrl(numbers, body) {
 async function copy(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }
+// Vipps har ingen offisiell lenke som fyller inn mottakerens nummer for privatpersoner.
+// Vi kopierer nummeret og viser et ark med nummeret og en knapp som åpner Vipps.
 async function openVipps(m) {
   const local = normPhone(m.phone).replace(/^\+47/, '');
+  $('vp-head').textContent = `Vipps til ${m.display_name || 'familiemedlem'}`;
+  $('vp-num').textContent = prettyPhone(m.phone);
+  $('vp-status').textContent = 'Kopierer nummeret …';
+  $('vipps-dlg').showModal();
   const ok = await copy(local);
-  toast(ok ? `${m.display_name} sitt nummer (${local}) er kopiert. Lim det inn i Vipps.` : `Nummeret er ${local}. Skriv det inn i Vipps.`, 6000);
-  setTimeout(() => { location.href = 'vipps://'; }, 400);
+  $('vp-status').textContent = ok ? '✓ Nummeret er kopiert.' : 'Klarte ikke å kopiere. Skriv inn nummeret over i Vipps.';
+  $('vp-copy').onclick = async () => {
+    $('vp-status').textContent = (await copy(local)) ? '✓ Nummeret er kopiert.' : 'Klarte ikke å kopiere.';
+  };
 }
 
 // ---------- Oppstart ----------
@@ -608,6 +616,7 @@ function renderFamily() {
         <a class="round" href="tel:${esc(ph)}" aria-label="Ring">📞</a>
         <a class="round" href="${esc(smsUrl([ph], ''))}" aria-label="SMS">💬</a>
         <button class="round vipps" aria-label="Vipps">Vipps</button>
+        ${isIOS ? '<a class="round findmy" href="findmy://">Hvor er?</a>' : ''}
       </span>` : ''}
     </li>`;
   }).join('');

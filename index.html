@@ -152,6 +152,22 @@
     </form>
   </dialog>
 
+  <!-- Vipps til et familiemedlem -->
+  <dialog id="vipps-dlg" class="sheet">
+    <form method="dialog" class="sheet-head"><h3 id="vp-head">Vipps</h3><button class="icon-btn" aria-label="Lukk">✕</button></form>
+    <div class="card stack">
+      <div class="vp-num" id="vp-num"></div>
+      <p class="muted small" id="vp-status"></p>
+      <ol class="vp-steps">
+        <li>Trykk <b>Åpne Vipps</b></li>
+        <li>Trykk <b>Send</b> og velg <b>Til nummer</b></li>
+        <li>Hold fingeren i feltet og trykk <b>Lim inn</b></li>
+      </ol>
+      <a class="btn primary vp-open" id="vp-open" href="vipps://">Åpne Vipps</a>
+      <button class="btn ghost" type="button" id="vp-copy">Kopier nummeret på nytt</button>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" hidden></div>
   <script type="module" src="app.js"></script>
 </body>

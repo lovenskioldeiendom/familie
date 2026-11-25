@@ -146,12 +146,13 @@ textarea { resize: none; line-height: 1.4; min-height: 52px; }
 .cal-time { width: 96px; }
 .section { font-size: 15px; color: var(--muted); font-weight: 600; margin: 20px 4px 6px; }
 .members { list-style: none; margin: 0; padding: 0 14px; }
-.members li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.members li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .members li:first-child { border-top: 0; }
-.mem-name { flex: 1; min-width: 0; }
+.mem-name { flex: 1; min-width: 130px; }
 .mem-name small { display: block; color: var(--muted); font-size: 13px; }
-.mem-btns { display: flex; gap: 6px; }
+.mem-btns { display: flex; gap: 6px; margin-left: auto; }
 .round { width: 40px; height: 40px; border-radius: 20px; border: 0; background: var(--chip); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; cursor: pointer; }
+.round.findmy { width: auto; padding: 0 12px; background: #34c759; color: #fff; font-weight: 700; font-size: 14px; }
 .round.vipps { width: auto; padding: 0 12px; background: #ff5b24; color: #fff; font-weight: 700; font-size: 14px; }
 #pane-fam .card + .section { margin-top: 20px; }
 .center-link { align-self: center; }
@@ -163,3 +164,9 @@ textarea { resize: none; line-height: 1.4; min-height: 52px; }
 .push-banner .btn { flex: none; }
 .push-banner .icon-btn { flex: none; width: 34px; height: 34px; font-size: 18px; }
 .push-status { margin: 0; font-size: 15px; line-height: 1.4; }
+
+/* Vipps-ark */
+.vp-num { font-size: 32px; font-weight: 700; text-align: center; letter-spacing: 1px; user-select: all; -webkit-user-select: all; }
+#vp-status { text-align: center; margin: 0; }
+.vp-steps { margin: 4px 0; padding-left: 22px; line-height: 1.6; }
+.vp-open { display: block; text-align: center; text-decoration: none; background: #ff5b24; }
