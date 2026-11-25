@@ -51,7 +51,7 @@
     <form id="setup-form" class="card stack">
       <label>Ditt navn<input id="setup-name" autocomplete="given-name" placeholder="F.eks. Magnus" required maxlength="40"></label>
       <label>Mobilnummer<input id="setup-phone" type="tel" autocomplete="tel" placeholder="F.eks. 912 34 567" inputmode="tel"></label>
-      <p class="hint">Nummeret brukes når noen sender SMS eller Vipps til deg. Det vises bare for familien.</p>
+      <p class="hint">Nummeret brukes når noen ringer eller sender SMS til deg. Det vises bare for familien.</p>
       <div class="seg" role="tablist">
         <button type="button" class="seg-btn active" data-mode="join">Jeg har en kode</button>
         <button type="button" class="seg-btn" data-mode="new">Lag ny familie</button>
@@ -150,22 +150,6 @@
       <button class="btn ghost" type="button" id="ev-tell">Send beskjed om avtalen</button>
       <button class="btn ghost danger" type="button" id="ev-delete" hidden>Slett avtale</button>
     </form>
-  </dialog>
-
-  <!-- Vipps til et familiemedlem -->
-  <dialog id="vipps-dlg" class="sheet">
-    <form method="dialog" class="sheet-head"><h3 id="vp-head">Vipps</h3><button class="icon-btn" aria-label="Lukk">✕</button></form>
-    <div class="card stack">
-      <div class="vp-num" id="vp-num"></div>
-      <p class="muted small" id="vp-status"></p>
-      <ol class="vp-steps">
-        <li>Trykk <b>Åpne Vipps</b></li>
-        <li>Trykk <b>Send</b> og velg <b>Til nummer</b></li>
-        <li>Hold fingeren i feltet og trykk <b>Lim inn</b></li>
-      </ol>
-      <a class="btn primary vp-open" id="vp-open" href="vipps://">Åpne Vipps</a>
-      <button class="btn ghost" type="button" id="vp-copy">Kopier nummeret på nytt</button>
-    </div>
   </dialog>
 
   <div id="toast" class="toast" hidden></div>
